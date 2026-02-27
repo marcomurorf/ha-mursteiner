@@ -15,6 +15,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers.entity import DeviceInfo
 import homeassistant.util.dt as dt_util
 
 from .const import (
@@ -94,6 +96,15 @@ class MursteinerBusSensor(SensorEntity):
         stop_slug = re.sub(r"[^a-z0-9]+", "_", stop.lower()).strip("_")
         self._attr_unique_id = f"mursteiner_bus_{stop_slug}_{line_slug}"
         self._attr_name = f"{line} {stop.split(' ', 1)[-1] if ' ' in stop else stop}"
+
+        # Device info for proper HA integration
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry_id)},
+            name=f"Mursteiner Bus {stop.split(' ', 1)[-1] if ' ' in stop else stop}",
+            manufacturer="ÖBB HAFAS",
+            model="Bus Abfahrten",
+            entry_type=DeviceEntryType.SERVICE,
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -189,19 +200,23 @@ class MursteinerBusSensor(SensorEntity):
                 "L": "vs_scotty.vs_liveticker",
             }
             url = f"{OEBB_HAFAS_BASE}?{urlencode(params)}"
+            _LOGGER.debug("Fetching departures from: %s", url)
 
             async with session.get(
                 url,
                 timeout=aiohttp.ClientTimeout(total=15),
                 headers={"User-Agent": "HomeAssistant/MursteinerBus/1.0"},
             ) as resp:
-                raw = await resp.text(encoding="iso-8859-1")
+                raw_bytes = await resp.read()
+                raw = raw_bytes.decode("iso-8859-1")
 
+            _LOGGER.debug("API response length: %d", len(raw))
             data = self._parse_response(raw)
 
             if data:
                 self._station_name = data.get("stationName", self._stop)
                 journeys = data.get("journey", [])
+                _LOGGER.debug("Got %d journeys from API", len(journeys))
 
                 # Nach Linie filtern
                 if self._line:
@@ -209,6 +224,7 @@ class MursteinerBusSensor(SensorEntity):
                         j for j in journeys
                         if j.get("pr", "").lower() == self._line.lower()
                     ]
+                    _LOGGER.debug("After line filter (%s): %d journeys", self._line, len(journeys))
 
                 self._journeys = journeys
             else:
