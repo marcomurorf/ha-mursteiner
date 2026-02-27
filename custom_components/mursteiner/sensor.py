@@ -107,16 +107,26 @@ class MursteinerBusSensor(SensorEntity):
         )
 
     @property
-    def native_value(self) -> str | None:
-        """Return the next departure time as state."""
+    def native_value(self) -> int | None:
+        """Return minutes until next departure."""
         if self._journeys:
             j = self._journeys[0]
-            time = j.get("ti", "")
-            # Echtzeit verwenden wenn vorhanden
-            if isinstance(j.get("rt"), dict) and j["rt"].get("dlt"):
-                time = j["rt"]["dlt"]
-            return time
+            dep_time = j.get("ti", "")
+            dep_date = j.get("da", "")
+            rt = j.get("rt")
+            if isinstance(rt, dict):
+                if rt.get("dlt"):
+                    dep_time = rt["dlt"]
+                if rt.get("dld"):
+                    dep_date = rt["dld"]
+            mins = self._calc_minutes(dep_date, dep_time, dt_util.now())
+            return mins
         return None
+
+    @property
+    def native_unit_of_measurement(self) -> str:
+        """Return the unit."""
+        return "min"
 
     @property
     def extra_state_attributes(self) -> dict:
