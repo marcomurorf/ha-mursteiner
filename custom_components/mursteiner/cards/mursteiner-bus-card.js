@@ -72,8 +72,17 @@ class MursteinerBusCard extends HTMLElement {
       + '  opacity:0.5; pointer-events:none;'
       + '}'
       + '.hero-icon { width:44px; height:44px; border-radius:12px; background:var(--mid);'
-      + '  display:flex; align-items:center; justify-content:center; flex-shrink:0; }'
+      + '  display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }'
       + '.hero-icon svg { width:26px; height:26px; }'
+      + '.hero-icon img { width:40px; height:40px; object-fit:contain; }'
+      + '.hero-icon .oebb-logo { width:40px; height:28px; border-radius:4px; background:#E2001A;'
+      + '  display:flex; align-items:center; justify-content:center; }'
+      + '.hero-icon .oebb-logo span { color:#fff; font-weight:900; font-size:11px; letter-spacing:.5px; font-family:Arial,sans-serif; }'
+      + '.hero-icon .rj-logo { width:42px; height:30px; border-radius:4px;'
+      + '  background:linear-gradient(135deg, #C8102E 0%, #E2001A 50%, #DC143C 100%);'
+      + '  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; }'
+      + '.hero-icon .rj-logo .rj-text { color:#fff; font-weight:900; font-size:12px; line-height:1; font-family:Arial,sans-serif; letter-spacing:1px; }'
+      + '.hero-icon .rj-logo .rj-sub { color:rgba(255,255,255,.7); font-size:6px; font-weight:600; line-height:1; letter-spacing:.3px; text-transform:uppercase; font-family:Arial,sans-serif; }'
       + '.hero-content { text-align:center; min-width:64px; flex-shrink:0; }'
       + '.hero-mins {'
       + '  font-size:42px; font-weight:800; line-height:1; color:var(--accent);'
@@ -239,9 +248,16 @@ class MursteinerBusCard extends HTMLElement {
 
   _transportSvg(col, line) {
     var ll = (line || '').toLowerCase();
-    // Zug-Icon für RJX, RJ, IC, EC, ICE, REX, S-Bahn
-    if (/\b(rjx|rj|ic|ec|ice|rex)\b/.test(ll) || /^s\s?\d/.test(ll)) {
-      return '<svg viewBox="0 0 24 24" fill="' + col + '"><path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2l2-2h4l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>';
+    // Railjet / Railjet Xpress
+    if (/\b(rjx)\b/.test(ll)) {
+      return '<div class="rj-logo"><span class="rj-text">RJX</span><span class="rj-sub">railjet xpress</span></div>';
+    }
+    if (/\brj\b/.test(ll) && !/rjx/.test(ll)) {
+      return '<div class="rj-logo"><span class="rj-text">RJ</span><span class="rj-sub">railjet</span></div>';
+    }
+    // Andere ÖBB Züge (IC, EC, ICE, REX, S)
+    if (/\b(ic|ec|ice|rex)\b/.test(ll) || /^s\s?\d/.test(ll)) {
+      return '<div class="oebb-logo"><span>ÖBB</span></div>';
     }
     // Bus-Icon
     return '<svg viewBox="0 0 24 24" fill="' + col + '"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4S4 2.5 4 6v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>';
