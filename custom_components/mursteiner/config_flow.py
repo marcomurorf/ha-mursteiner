@@ -32,7 +32,9 @@ class MursteinerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             # Titel für den Config Entry
-            title = f"{user_input.get(CONF_LINE, DEFAULT_LINE)} — {user_input.get(CONF_STOP, DEFAULT_STOP)}"
+            line = user_input.get(CONF_LINE, "").strip()
+            stop = user_input.get(CONF_STOP, DEFAULT_STOP)
+            title = f"{line} — {stop}" if line else stop
 
             return self.async_create_entry(title=title, data=user_input)
 
@@ -42,7 +44,7 @@ class MursteinerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_STOP, default=DEFAULT_STOP): str,
                     vol.Required(CONF_DIRECTION, default=DEFAULT_DIRECTION): str,
-                    vol.Required(CONF_LINE, default=DEFAULT_LINE): str,
+                    vol.Optional(CONF_LINE, default=DEFAULT_LINE): str,
                     vol.Optional(CONF_LIMIT, default=DEFAULT_LIMIT): vol.All(
                         int, vol.Range(min=1, max=20)
                     ),

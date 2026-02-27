@@ -1,4 +1,4 @@
-"""Sensor platform for Mursteiner Bus departures."""
+"""Sensor platform for Mursteiner departures (Bus, Zug, etc.)."""
 from __future__ import annotations
 
 import asyncio
@@ -52,7 +52,7 @@ async def async_setup_entry(
     """Set up the bus departure sensor."""
     data = entry.data
 
-    sensor = MursteinerBusSensor(
+    sensor = MursteinerDepartureSensor(
         hass=hass,
         entry_id=entry.entry_id,
         stop=data.get(CONF_STOP, DEFAULT_STOP),
@@ -64,10 +64,9 @@ async def async_setup_entry(
     async_add_entities([sensor], update_before_add=True)
 
 
-class MursteinerBusSensor(SensorEntity):
-    """Sensor that provides next bus departures."""
+class MursteinerDepartureSensor(SensorEntity):
+    """Sensor that provides next departures from ÖBB HAFAS."""
 
-    _attr_icon = "mdi:bus-clock"
     _attr_has_entity_name = True
 
     def __init__(
@@ -85,26 +84,72 @@ class MursteinerBusSensor(SensorEntity):
         self._entry_id = entry_id
         self._stop = stop
         self._direction = direction
-        self._line = line
+        self._line = line  # kann leer sein = alle Linien
         self._limit = limit
         self._scan_interval = timedelta(seconds=scan_interval)
         self._journeys: list[dict] = []
         self._station_name = stop
 
-        # Entity-IDs
-        line_slug = line.lower().replace(" ", "_")
-        stop_slug = re.sub(r"[^a-z0-9]+", "_", stop.lower()).strip("_")
-        self._attr_unique_id = f"mursteiner_bus_{stop_slug}_{line_slug}"
-        self._attr_name = f"{line} {stop.split(' ', 1)[-1] if ' ' in stop else stop}"
+        # Line-Filter vorbereiten: komma-getrennt, lowercase
+        self._line_filters = []
+        if line:
+            self._line_filters = [
+                f.strip().lower() for f in line.split(",") if f.strip()
+            ]
 
-        # Device info for proper HA integration
+        # Entity-IDs
+        line_slug = re.sub(r"[^a-z0-9]+", "_", line.lower()).strip("_") if line else "all"
+        stop_slug = re.sub(r"[^a-z0-9]+", "_", stop.lower()).strip("_")
+        self._attr_unique_id = f"mursteiner_{stop_slug}_{line_slug}"
+
+        # Anzeigename
+        stop_short = stop.split(" ", 1)[-1] if " " in stop else stop
+        self._attr_name = f"{line} {stop_short}" if line else stop_short
+
+        # Icon basierend auf Linientyp
+        self._attr_icon = self._detect_icon(line)
+
+        # Device info
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry_id)},
-            name=f"Mursteiner Bus {stop.split(' ', 1)[-1] if ' ' in stop else stop}",
+            name=f"Mursteiner {stop_short}",
             manufacturer="ÖBB HAFAS",
-            model="Bus Abfahrten",
+            model="Abfahrten",
             entry_type=DeviceEntryType.SERVICE,
         )
+
+    @staticmethod
+    def _detect_icon(line: str) -> str:
+        """Detect icon based on line type."""
+        if not line:
+            return "mdi:clock-outline"
+        ll = line.lower()
+        if any(t in ll for t in ["rjx", "rj ", "railjet", "ic ", "ice", "ec "]):
+            return "mdi:train"
+        if any(t in ll for t in ["rex", "r ", "s "]):
+            return "mdi:train-variant"
+        if any(t in ll for t in ["bus", "linie"]):
+            return "mdi:bus-clock"
+        if "tram" in ll or "str " in ll:
+            return "mdi:tram"
+        return "mdi:train"
+
+    def _matches_line(self, journey_line: str) -> bool:
+        """Check if a journey matches the configured line filter."""
+        if not self._line_filters:
+            return True  # Kein Filter = alles zeigen
+        jl = journey_line.lower().strip()
+        for f in self._line_filters:
+            # Exakter Match
+            if jl == f:
+                return True
+            # Typ-Match: "rjx" matcht "rjx 130", "rjx 254", etc.
+            if jl.startswith(f + " ") or jl.startswith(f + "\t"):
+                return True
+            # Umgekehrt: Filter "rjx 130" matcht "rjx 130"
+            if f.startswith(jl + " "):
+                return True
+        return False
 
     @property
     def native_value(self) -> int | None:
@@ -229,10 +274,10 @@ class MursteinerBusSensor(SensorEntity):
                 _LOGGER.debug("Got %d journeys from API", len(journeys))
 
                 # Nach Linie filtern
-                if self._line:
+                if self._line_filters:
                     journeys = [
                         j for j in journeys
-                        if j.get("pr", "").lower() == self._line.lower()
+                        if self._matches_line(j.get("pr", ""))
                     ]
                     _LOGGER.debug("After line filter (%s): %d journeys", self._line, len(journeys))
 

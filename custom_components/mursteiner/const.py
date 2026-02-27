@@ -1,4 +1,4 @@
-"""Mursteiner Dashboard — HA Integration für Uhr + Busabfahrten."""
+"""Mursteiner — HA Integration für ÖBB HAFAS Abfahrten (Bus, Zug, etc.)."""
 
 DOMAIN = "mursteiner"
 PLATFORMS = ["sensor"]

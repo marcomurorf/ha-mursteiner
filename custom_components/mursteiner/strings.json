@@ -2,12 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Mursteiner Bus einrichten",
-        "description": "Gib die Haltestelle und Linie ein. Die Haltestellennamen müssen dem ÖBB-Format entsprechen (z.B. 'Klagenfurt Kriemhildgasse').",
+        "title": "ÖBB Abfahrten einrichten",
+        "description": "Haltestellennamen im ÖBB-Format. Linie: z.B. 'Bus 5', 'RJX', 'RJ,RJX,IC' (kommagetrennt) oder leer für alle.",
         "data": {
-          "stop": "Haltestelle",
-          "direction": "Richtung (Haltestelle)",
-          "line": "Linie (z.B. Bus 5)",
+          "stop": "Haltestelle / Bahnhof",
+          "direction": "Richtung (Ziel-Haltestelle)",
+          "line": "Linie(n) — z.B. Bus 5, RJX, RJ,RJX,IC",
           "limit": "Max. Abfahrten",
           "scan_interval": "Aktualisierung (Sekunden)"
         }
@@ -17,11 +17,11 @@
   "options": {
     "step": {
       "init": {
-        "title": "Mursteiner Bus Optionen",
+        "title": "Abfahrten Optionen",
         "data": {
-          "stop": "Haltestelle",
-          "direction": "Richtung (Haltestelle)",
-          "line": "Linie",
+          "stop": "Haltestelle / Bahnhof",
+          "direction": "Richtung (Ziel-Haltestelle)",
+          "line": "Linie(n)",
           "limit": "Max. Abfahrten",
           "scan_interval": "Aktualisierung (Sekunden)"
         }

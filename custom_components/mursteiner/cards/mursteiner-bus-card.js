@@ -1,12 +1,12 @@
 /**
- * Mursteiner Bus Card v3.0
- * Modern glassmorphism design mit großem Countdown
+ * Mursteiner Departure Card v4.0
+ * ÖBB HAFAS Abfahrten — Bus, Zug, alles
  *
  *   type: custom:mursteiner-bus-card
- *   entity: sensor.bus_5_kriemhildgasse
+ *   entity: sensor.bus_5_kriemhildgasse   # oder sensor.rjx_klagenfurt_hbf etc.
  *   title: 'Bus 5 → Heiligengeistplatz'   # Optional
  *   color: '#4FC3F7'                       # Optional
- *   max_entries: 5                         # Optional
+ *   max_entries: 5                         # Optional (1-20)
  */
 
 class MursteinerBusCard extends HTMLElement {
@@ -29,7 +29,7 @@ class MursteinerBusCard extends HTMLElement {
       + '<ha-card>'
       + '<div class="card-inner">'
       + '  <div class="hero" id="hero">'
-      + '    <div class="hero-icon">' + this._busSvg(col) + '</div>'
+      + '    <div class="hero-icon" id="hero-icon">' + this._transportSvg(col, '') + '</div>'
       + '    <div class="hero-content">'
       + '      <div class="hero-mins" id="hero-mins">--</div>'
       + '      <div class="hero-label" id="hero-label">min</div>'
@@ -148,10 +148,16 @@ class MursteinerBusCard extends HTMLElement {
     }
     var a = state.attributes || {};
     if (this._elTitle && !this._config.title) {
-      this._elTitle.textContent = (a.line || 'Bus') + ' → ' + (a.direction || '').replace(/^Klagenfurt\s+/i, '');
+      var dir = (a.direction || '').replace(/^Klagenfurt\s+/i, '').replace(/^Wien\s+/i, 'Wien ');
+      this._elTitle.textContent = (a.line || '') + (a.line && dir ? ' → ' : '') + dir;
     }
     if (this._elSubtitle) this._elSubtitle.textContent = a.station || '';
     this._departures = (a.departures || []).slice(0, this._config.max_entries);
+    // Icon dynamisch anpassen
+    var iconEl = this.shadowRoot.getElementById('hero-icon');
+    if (iconEl && this._departures.length) {
+      iconEl.innerHTML = this._transportSvg(this._config.color, this._departures[0].line || a.line || '');
+    }
     this._renderList();
     this._tick();
   }
@@ -231,7 +237,13 @@ class MursteinerBusCard extends HTMLElement {
     return Math.max(0, Math.ceil((dep - now) / 60000));
   }
 
-  _busSvg(col) {
+  _transportSvg(col, line) {
+    var ll = (line || '').toLowerCase();
+    // Zug-Icon für RJX, RJ, IC, EC, ICE, REX, S-Bahn
+    if (/\b(rjx|rj|ic|ec|ice|rex)\b/.test(ll) || /^s\s?\d/.test(ll)) {
+      return '<svg viewBox="0 0 24 24" fill="' + col + '"><path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2l2-2h4l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>';
+    }
+    // Bus-Icon
     return '<svg viewBox="0 0 24 24" fill="' + col + '"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4S4 2.5 4 6v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>';
   }
   _rgba(hex, a) {
@@ -247,5 +259,5 @@ class MursteinerBusCard extends HTMLElement {
 
 customElements.define('mursteiner-bus-card', MursteinerBusCard);
 window.customCards = window.customCards || [];
-window.customCards.push({ type:'mursteiner-bus-card', name:'Mursteiner Bus', description:'Busabfahrten mit Countdown', preview:true });
-console.info('%c MURSTEINER-BUS %c v3.0 ', 'color:#4FC3F7;background:#111;font-weight:bold;padding:2px 6px;', 'color:#fff;background:#4FC3F7;font-weight:bold;padding:2px 6px;');
+window.customCards.push({ type:'mursteiner-bus-card', name:'Mursteiner Abfahrten', description:'ÖBB HAFAS Abfahrten — Bus, Zug, etc.', preview:true });
+console.info('%c MURSTEINER %c v4.0 ', 'color:#4FC3F7;background:#111;font-weight:bold;padding:2px 6px;', 'color:#fff;background:#4FC3F7;font-weight:bold;padding:2px 6px;');
