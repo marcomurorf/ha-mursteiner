@@ -7,6 +7,7 @@ import os
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 
 from .const import DOMAIN, PLATFORMS
 
@@ -21,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = entry.data
 
     # Frontend-Card registrieren
-    _register_cards(hass)
+    await _register_cards(hass)
 
     # Plattformen laden
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -37,7 +38,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-def _register_cards(hass: HomeAssistant) -> None:
+async def _register_cards(hass: HomeAssistant) -> None:
     """Register custom Lovelace card as extra JS module."""
     if hass.data.get(f"{DOMAIN}_cards_registered"):
         return
@@ -48,10 +49,12 @@ def _register_cards(hass: HomeAssistant) -> None:
 
     _LOGGER.info("Registering bus card from: %s", card_path)
 
-    # Statischen Pfad registrieren
-    hass.http.register_static_path(CARD_URL, card_path, cache_headers=False)
+    # Statischen Pfad registrieren (neue API)
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(CARD_URL, card_path, False)
+    ])
 
-    # Als Extra-JS dem Frontend hinzufügen (zuverlässigste Methode)
+    # Als Extra-JS dem Frontend hinzufügen
     add_extra_js_url(hass, CARD_URL, es5=False)
 
     _LOGGER.info("Mursteiner Bus card registered at %s", CARD_URL)
