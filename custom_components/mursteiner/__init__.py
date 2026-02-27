@@ -6,10 +6,13 @@ import os
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.components.frontend import add_extra_js_url
 
 from .const import DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
+
+CARD_URL = "/mursteiner/mursteiner-bus-card.js"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -18,7 +21,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = entry.data
 
     # Frontend-Card registrieren
-    await _register_cards(hass)
+    _register_cards(hass)
 
     # Plattformen laden
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -34,38 +37,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def _register_cards(hass: HomeAssistant) -> None:
-    """Register custom Lovelace cards."""
-    # Nur einmal registrieren
+def _register_cards(hass: HomeAssistant) -> None:
+    """Register custom Lovelace card as extra JS module."""
     if hass.data.get(f"{DOMAIN}_cards_registered"):
         return
     hass.data[f"{DOMAIN}_cards_registered"] = True
 
-    # Pfad zu den JS-Dateien
     cards_dir = os.path.join(os.path.dirname(__file__), "cards")
+    card_path = os.path.join(cards_dir, "mursteiner-bus-card.js")
 
-    hass.http.register_static_path(
-        f"/mursteiner/mursteiner-bus-card.js",
-        os.path.join(cards_dir, "mursteiner-bus-card.js"),
-        cache_headers=False,
-    )
+    _LOGGER.info("Registering bus card from: %s", card_path)
 
-    # Lovelace-Ressource automatisch registrieren
-    from homeassistant.components.lovelace.resources import (
-        ResourceStorageCollection,
-    )
+    # Statischen Pfad registrieren
+    hass.http.register_static_path(CARD_URL, card_path, cache_headers=False)
 
-    try:
-        resources: ResourceStorageCollection = hass.data["lovelace"]["resources"]
-        # Prüfen ob schon registriert
-        existing = [r for r in resources.async_items() if "mursteiner-bus" in r.get("url", "")]
-        if not existing:
-            await resources.async_create_item(
-                {"res_type": "module", "url": "/mursteiner/mursteiner-bus-card.js"}
-            )
-            _LOGGER.info("Mursteiner Bus Lovelace card registered")
-    except Exception:
-        _LOGGER.warning(
-            "Konnte Lovelace-Ressource nicht automatisch registrieren. "
-            "Bitte manuell hinzufügen: /mursteiner/mursteiner-bus-card.js"
-        )
+    # Als Extra-JS dem Frontend hinzufügen (zuverlässigste Methode)
+    add_extra_js_url(hass, CARD_URL, es5=False)
+
+    _LOGGER.info("Mursteiner Bus card registered at %s", CARD_URL)
